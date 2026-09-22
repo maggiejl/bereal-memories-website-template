@@ -8,7 +8,7 @@ This website can deploy locally, which means your data is safe and not uploaded 
 
 Curious what it would look like?
 
-[BeReal Website Example](https://maggiejl.github.io/bereal-memories-website-demo/).
+[BeReal Website Example](https://maggiejl.github.io/bereal-memories-website-demo/)
 
 ## Instructions
 
