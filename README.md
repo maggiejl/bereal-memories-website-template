@@ -1,6 +1,6 @@
 # BeReal Memories Website Template
 
-Received your BeReal data export but don't know how to view all of them in an easy way? Transform your BeReal memories into website format! This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place.
+This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place.
 
 This website can deploy locally, which means your data is safe and not uploaded anywhere.
 
