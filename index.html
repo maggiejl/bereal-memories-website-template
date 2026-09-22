@@ -9,25 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="is-locked">
-  <div id="gate" class="gate" aria-modal="true" role="dialog" aria-labelledby="gate-title">
-    <div class="gate-card">
-      <h1 id="gate-title" class="gate-title">Coming soon!</h1>
-      <input
-        id="gate-password"
-        class="gate-secret"
-        type="password"
-        name="password"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        tabindex="-1"
-        aria-hidden="true"
-      />
-    </div>
-  </div>
-
-  <div id="boot" class="boot is-done">
+<body>
+  <div id="boot" class="boot">
     <p>Loading your BeReal export…</p>
     <p class="boot-hint">First run <code>python3 setup.py</code>, then <code>python3 -m http.server 8000</code> and open <code>http://localhost:8000</code>.</p>
   </div>

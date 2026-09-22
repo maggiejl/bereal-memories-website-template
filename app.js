@@ -9,10 +9,6 @@ const DATA_DIR = cfg.dataDir;
 const USER_ID = cfg.userId;
 const CONVERSATION_IDS = Array.isArray(cfg.conversationIds) ? cfg.conversationIds : [];
 const ROTATION_STORAGE_KEY = "bereal-memories-rotations";
-const AUTH_STORAGE_KEY = "bereal-memories-auth";
-const AUTH_SALT = "bereal-memories-v1";
-/** SHA-256 hex of AUTH_SALT + password. Soft gate only — static hosting still exposes files. */
-const AUTH_PASSWORD_HASH = cfg.authPasswordHash || "";
 
 const VIEWS = ["memories", "comments", "realmojis", "chats", "profile"];
 
@@ -33,8 +29,6 @@ const state = {
 };
 
 const els = {
-  gate: document.getElementById("gate"),
-  gatePassword: document.getElementById("gate-password"),
   boot: document.getElementById("boot"),
   title: document.getElementById("title"),
   subtitle: document.getElementById("subtitle"),
@@ -959,147 +953,7 @@ function setupFilters() {
   });
 }
 
-async function sha256Hex(text) {
-  const bytes = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function passwordMatches(password) {
-  const hash = await sha256Hex(`${AUTH_SALT}${password}`);
-  return hash === AUTH_PASSWORD_HASH;
-}
-
-function isUnlocked() {
-  try {
-    return sessionStorage.getItem(AUTH_STORAGE_KEY) === AUTH_PASSWORD_HASH;
-  } catch {
-    return false;
-  }
-}
-
-function markUnlocked() {
-  try {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, AUTH_PASSWORD_HASH);
-  } catch {
-    // Ignore quota / private mode errors
-  }
-}
-
-function revealAppShell() {
-  document.body.classList.remove("is-locked");
-  els.gate.classList.add("is-done");
-  els.boot.classList.remove("is-done");
-}
-
-function setupGate() {
-  return new Promise((resolve) => {
-    // No password configured → skip the soft gate.
-    if (!AUTH_PASSWORD_HASH) {
-      revealAppShell();
-      resolve();
-      return;
-    }
-
-    if (isUnlocked()) {
-      revealAppShell();
-      resolve();
-      return;
-    }
-
-    let buffer = "";
-    let idleTimer = null;
-    let checking = false;
-    let unlocked = false;
-
-    const unlock = () => {
-      if (unlocked) return;
-      unlocked = true;
-      markUnlocked();
-      revealAppShell();
-      resolve();
-    };
-
-    const clearBuffer = () => {
-      buffer = "";
-      if (els.gatePassword) els.gatePassword.value = "";
-    };
-
-    const bumpIdle = () => {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(clearBuffer, 2500);
-    };
-
-    const tryUnlock = async (candidate) => {
-      if (!candidate || checking || unlocked) return;
-      checking = true;
-      try {
-        // Accept the password typed cleanly, or as a trailing run after junk keys.
-        const maxLen = 48;
-        const slice = candidate.slice(-maxLen);
-        for (let i = 0; i < slice.length; i++) {
-          if (await passwordMatches(slice.slice(i))) {
-            unlock();
-            return;
-          }
-        }
-      } finally {
-        checking = false;
-      }
-    };
-
-    const onTyped = (value) => {
-      buffer = value;
-      bumpIdle();
-      tryUnlock(buffer);
-    };
-
-    // Hidden field keeps mobile keyboards working; desktop also types into it once focused.
-    const focusSecret = () => {
-      els.gatePassword.focus({ preventScroll: true });
-    };
-
-    els.gate.addEventListener("pointerdown", focusSecret);
-    els.gatePassword.addEventListener("input", () => {
-      onTyped(els.gatePassword.value);
-    });
-
-    window.addEventListener("keydown", (event) => {
-      if (unlocked) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-      // Prefer the hidden input path when it has focus.
-      if (document.activeElement === els.gatePassword) {
-        if (event.key === "Escape") {
-          clearBuffer();
-        }
-        return;
-      }
-
-      if (event.key === "Escape") {
-        clearBuffer();
-        return;
-      }
-      if (event.key === "Backspace") {
-        buffer = buffer.slice(0, -1);
-        bumpIdle();
-        return;
-      }
-      if (event.key.length === 1) {
-        buffer += event.key;
-        if (buffer.length > 64) buffer = buffer.slice(-64);
-        bumpIdle();
-        tryUnlock(buffer);
-      }
-    });
-
-    focusSecret();
-  });
-}
-
 async function main() {
-  await setupGate();
-
   try {
     const [user, memoriesRaw, posts, comments, realmojis, reactions, friends, conversations] =
       await Promise.all([

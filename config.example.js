@@ -8,8 +8,4 @@ window.BEREAL_CONFIG = {
 
   // Filled automatically by setup.py from conversations/*/chat_log.json
   conversationIds: [],
-
-  // Optional: SHA-256 hex of ("bereal-memories-v1" + password). Empty string = no gate.
-  // Soft gate only — anyone with the URL can still download static files.
-  authPasswordHash: "",
 };
