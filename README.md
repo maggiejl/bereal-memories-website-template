@@ -12,22 +12,22 @@ Curious what it would look like?
 
 ## Instructions
 
-1. **Request your data** from BeReal by going to Settings --> Help --> Contact Us --> Report a Problem --> Other --> Still need help? Select a topic --> I'd like to request a copy of my data --> fill in required fields --> Send.
+1. **Request your data from BeReal.** Go to Settings --> Help --> Contact Us --> Report a Problem --> Other --> Still need help? Select a topic --> I'd like to request a copy of my data --> Fill in required fields --> Send.
 2. Clone this repo.
 3. After a few days, you should receive a message with two links. Download these files and unzip the folder.
-4. Either drop the unzipped folder into `./data/`, or pass its path to setup (run the below command in Terminal but replace the "/path/to/your-unzipped-export" with the path to your unzipped folder):
+4. Either drop the unzipped folder into `./data/`, or pass its path to setup. (Run the below command in Terminal but replace the "/path/to/your-unzipped-export" with the path to your unzipped folder):
 
 ```bash
 python3 setup.py /path/to/your-unzipped-export
 ```
 
-5. Serve locally:
+5. Serve locally by running this in Terminal:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-6. You should be good to go! View your website at: http://localhost:8000
+6. View your website at: http://localhost:8000
 
 ## Website Features
 
@@ -55,18 +55,9 @@ git push
 2) In your GitHub repository, go to Settings --> Pages
 3) Under "Source", choose "Deploy from a branch". Then, set "Branch" to "main" and folder to "/(root)".
 4) Hit "Save"
-5) Your website will be at https://<username>.github.io/<repo-name>/ after it deploys (usually takes a minute or two)! (You have to replace the <username> part with your GitHub username and <repo-name> with your GitHub repository name)
+5) Your website will be at https://\<username\>.github.io/\<repo-name\>/ after it deploys (usually takes a minute or two)! (You have to replace the \<username\> part with your GitHub username and \<repo-name\> with your GitHub repository name)
 
-## Repo layout
-
-| Path | Purpose |
-|------|---------|
-| `index.html` / `styles.css` / `app.js` | The viewer |
-| `setup.py` | Detects your export → writes `config.js` |
-| `config.example.js` | Shape of the generated config |
-| `data/` | Suggested place to put your unzipped export (gitignored) |
-
-## Privacy
+## Privacy Statement
 
 This template is a local viewer for a BeReal data export you already downloaded. It runs in your browser from files on your computer. It does not collect any information or upload your data to any server.
 
