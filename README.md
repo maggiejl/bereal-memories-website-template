@@ -8,13 +8,15 @@ This website can deploy locally, which means your data is safe and not uploaded 
 
 Curious what it would look like?
 
-[BeReal Website Example](https://maggiejl.github.io/bereal-memories-website-demo/)
+[Example BeReal Website](https://maggiejl.github.io/bereal-memories-website-demo/)
 
 - **Memories** — front/back photos, captions, late vs on-time, search & year filters, ability to rotate the front photo
 - **Comments** — grouped by post. BeReal's data export currently does not allow you to see what post the comments are under.
 - **Realmojis** — yours + your reactions to other people's BeReals
 - **Chats** — your chats included in the export
 - **Profile** — account information and list of friends, which you can sort by chronological order
+
+<img width="751" height="562" alt="image" src="https://github.com/user-attachments/assets/db2687e7-d1e1-4372-a94f-22ad786ff38f" />
 
 ## Instructions
 
