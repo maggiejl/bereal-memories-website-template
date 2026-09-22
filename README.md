@@ -1,13 +1,14 @@
 # BeReal Memories Website Template
 
-This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place.
+This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place!
 
 This website can deploy locally, which means your data is safe and not uploaded anywhere.
 
 ## Example Website
 
-An example of what the website would look like:
-[BeReal Website example](https://maggiejl.github.io/bereal-memories-website-demo/).
+Curious what it would look like?
+
+[BeReal Website Example](https://maggiejl.github.io/bereal-memories-website-demo/).
 
 ## Instructions
 
