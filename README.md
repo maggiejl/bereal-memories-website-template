@@ -10,6 +10,12 @@ Curious what it would look like?
 
 [BeReal Website Example](https://maggiejl.github.io/bereal-memories-website-demo/)
 
+- **Memories** — front/back photos, captions, late vs on-time, search & year filters, ability to rotate the front photo
+- **Comments** — grouped by post. BeReal's data export currently does not allow you to see what post the comments are under.
+- **Realmojis** — yours + your reactions to other people's BeReals
+- **Chats** — your chats included in the export
+- **Profile** — account information and list of friends, which you can sort by chronological order
+
 ## Instructions
 
 1. **Request your data from BeReal.** Go to Settings --> Help --> Contact Us --> Report a Problem --> Other --> Still need help? Select a topic --> I'd like to request a copy of my data --> Fill in required fields --> Send.
@@ -29,14 +35,6 @@ python3 -m http.server 8000
 
 6. View your website at: http://localhost:8000
 
-## Website Features
-
-- **Memories** — front/back photos, captions, late vs on-time, search & year filters, ability to rotate the front photo
-- **Comments** — grouped by post. BeReal's data export currently does not allow you to see what post the comments are under.
-- **Realmojis** — yours + your reactions to other people's BeReals
-- **Chats** — your chats included in the export
-- **Profile** — account information and list of friends, which you can sort by chronological order
-
 ## Optional: Publishing your memories as a website
 
 These instructions below make your BeReal photos, chats, and profile publicly reachable at a URL. Anyone with the link can view or download the files.
@@ -55,7 +53,7 @@ git push
 2) In your GitHub repository, go to Settings --> Pages
 3) Under "Source", choose "Deploy from a branch". Then, set "Branch" to "main" and folder to "/(root)".
 4) Hit "Save"
-5) Your website will be at https://\<username\>.github.io/\<repo-name\>/ after it deploys (usually takes a minute or two)! (You have to replace the \<username\> part with your GitHub username and \<repo-name\> with your GitHub repository name)
+5) Your website will be at https://\<username\>.github.io/\<repo-name\>/ after it deploys, which usually only takes a minute or two! (You have to replace the \<username\> part with your GitHub username and \<repo-name\> with your GitHub repository name)
 
 ## Privacy Statement
 
