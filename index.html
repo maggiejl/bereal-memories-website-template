@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeReal Memories</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-locked">
+  <div id="gate" class="gate" aria-modal="true" role="dialog" aria-labelledby="gate-title">
+    <div class="gate-card">
+      <h1 id="gate-title" class="gate-title">Coming soon!</h1>
+      <input
+        id="gate-password"
+        class="gate-secret"
+        type="password"
+        name="password"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        tabindex="-1"
+        aria-hidden="true"
+      />
+    </div>
+  </div>
+
+  <div id="boot" class="boot is-done">
+    <p>Loading your BeReal export…</p>
+    <p class="boot-hint">First run <code>python3 setup.py</code>, then <code>python3 -m http.server 8000</code> and open <code>http://localhost:8000</code>.</p>
+  </div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">BeReal</span>
+      <h1 id="title">Memories</h1>
+    </div>
+    <p id="subtitle" class="subtitle"></p>
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-view="memories" type="button">Memories</button>
+      <button class="tab" data-view="comments" type="button">Comments</button>
+      <button class="tab" data-view="realmojis" type="button">Realmojis</button>
+      <button class="tab" data-view="chats" type="button">Chats</button>
+      <button class="tab" data-view="profile" type="button">Profile</button>
+    </nav>
+  </header>
+
+  <section id="view-memories" class="view">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search captions…" autocomplete="off" />
+      <select id="year-filter" aria-label="Filter by year">
+        <option value="">All years</option>
+      </select>
+      <div class="filter-menu">
+        <button
+          id="filter-toggle"
+          class="filter-toggle"
+          type="button"
+          aria-label="Filters"
+          aria-expanded="false"
+          aria-controls="filter-panel"
+          title="Filters"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13a1.5 1.5 0 0 1 1.06 2.56l-5.06 5.06V18a1.5 1.5 0 0 1-2.4 1.2l-2-1.5A1.5 1.5 0 0 1 9.5 16.5v-3.94L4.44 7.56A1.5 1.5 0 0 1 4 6.5Z"
+            />
+          </svg>
+        </button>
+        <div id="filter-panel" class="filter-panel" hidden>
+          <label class="filter-option">
+            <input id="caption-only" type="checkbox" />
+            Has caption
+          </label>
+          <label class="filter-option">
+            <input id="on-time-only" type="checkbox" />
+            Posted on time
+          </label>
+          <label class="filter-option">
+            <input id="late-only" type="checkbox" />
+            Posted late
+          </label>
+        </div>
+      </div>
+      <span id="result-count" class="result-count"></span>
+    </div>
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <section id="view-comments" class="view is-hidden">
+    <div class="toolbar">
+      <input id="comment-search" type="search" placeholder="Search comment text…" autocomplete="off" />
+      <span id="comment-result-count" class="result-count"></span>
+    </div>
+    <div id="comment-groups" class="comment-groups"></div>
+  </section>
+
+  <section id="view-realmojis" class="view is-hidden">
+    <h2 class="section-heading">Saved</h2>
+    <div id="realmoji-grid" class="realmoji-grid"></div>
+    <h2 class="section-heading reactions-heading">
+      Reactions <span id="reaction-count" class="section-count"></span>
+    </h2>
+    <div id="reaction-grid" class="realmoji-grid realmoji-grid-dense"></div>
+  </section>
+
+  <section id="view-chats" class="view is-hidden">
+    <div id="chat-shell" class="chat-shell">
+      <aside class="chat-sidebar">
+        <div class="chat-sidebar-head">
+          <h2 class="chat-sidebar-title">Messages</h2>
+          <span id="chat-stats" class="chat-sidebar-stats"></span>
+        </div>
+        <div id="chat-threads" class="chat-threads"></div>
+      </aside>
+      <div id="chat-pane" class="chat-pane">
+        <header id="chat-pane-head" class="chat-pane-head is-hidden"></header>
+        <div id="chat-empty" class="chat-empty">
+          <span class="chat-empty-mark" aria-hidden="true"></span>
+          <p class="chat-empty-title">Pick a conversation</p>
+          <p class="muted">Your direct messages from the export show up here.</p>
+        </div>
+        <div id="chat-messages" class="chat-messages is-hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-profile" class="view is-hidden">
+    <div class="profile-hero" id="profile-hero"></div>
+    <div class="profile-grid">
+      <section class="panel">
+        <h2 class="section-heading">Account</h2>
+        <dl id="profile-facts" class="facts"></dl>
+      </section>
+    </div>
+    <section class="profile-friends">
+      <h2 class="section-heading">Friends</h2>
+      <div class="toolbar">
+        <input id="friend-search" type="search" placeholder="Search friends…" autocomplete="off" />
+        <select id="friend-sort" aria-label="Sort friends">
+          <option value="name">A–Z</option>
+          <option value="date-newest">Newest first</option>
+          <option value="date-oldest">Oldest first</option>
+        </select>
+        <span id="friend-result-count" class="result-count"></span>
+      </div>
+      <div id="friends-list" class="people-list"></div>
+    </section>
+  </section>
+
+  <dialog id="detail" class="detail">
+    <form method="dialog" class="detail-close-row">
+      <button value="close" class="back-btn" type="submit">← Back</button>
+    </form>
+    <div class="detail-layout">
+      <div class="stage">
+        <figure class="stage-shot">
+          <img id="detail-front" class="stage-front" alt="Front camera" />
+          <button type="button" class="rotate-btn" data-rotate="front" aria-label="Rotate front photo 90 degrees" title="Rotate 90°">↻</button>
+        </figure>
+        <figure class="stage-shot">
+          <img id="detail-back" class="stage-back" alt="Back camera" />
+        </figure>
+      </div>
+      <aside class="meta">
+        <time id="detail-date"></time>
+        <p id="detail-caption" class="detail-caption"></p>
+        <dl class="facts">
+          <div><dt>Taken</dt><dd id="detail-taken"></dd></div>
+          <div><dt>BeReal Time</dt><dd id="detail-moment"></dd></div>
+          <div><dt>On time</dt><dd id="detail-late"></dd></div>
+          <div><dt>Retakes</dt><dd id="detail-retakes"></dd></div>
+        </dl>
+        <section class="detail-comments">
+          <h2>Comments</h2>
+          <p id="detail-comments-note" class="muted"></p>
+          <ul id="detail-comments-list"></ul>
+        </section>
+      </aside>
+    </div>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

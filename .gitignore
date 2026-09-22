@@ -1,0 +1,32 @@
+# Generated per-user config (contains export path / user id / password hash)
+config.js
+
+# Suggested local folders for exports
+data/
+export/
+
+# BeReal media & JSON inside any export folder
+**/Photos/
+**/conversations/
+**/memories.json
+**/posts.json
+**/comments.json
+**/friends.json
+**/friend-requests.json
+**/realmojis.json
+**/reaction-realmojis.json
+**/user.json
+**/terms.json
+**/push-settings.json
+**/push-tokens.json
+
+# Analytics / Amplitude-style dumps sometimes included alongside exports
+*_*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
