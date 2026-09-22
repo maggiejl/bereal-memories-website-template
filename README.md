@@ -1,6 +1,6 @@
-# BeReal Memories Website Template
+# BeReal Archive Template
 
-Turn your BeReal data export into a memories website! This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place. It can deploy locally, which means your data is safe and not uploaded anywhere.
+Create an archive of your BeReal memories! This template makes it easy to view your BeReal data export - your memories, comments, Realmojis, chats, friends, and profile, all in one place. It can deploy locally, which means your data is safe and not uploaded anywhere.
 <br><br>
 
 <img width="375" alt="image" src="https://github.com/user-attachments/assets/db2687e7-d1e1-4372-a94f-22ad786ff38f" />
@@ -10,7 +10,7 @@ Turn your BeReal data export into a memories website! This template makes it eas
 
 Curious what it would look like?
 
-[Example BeReal Website](https://maggiejl.github.io/bereal-memories-website-demo/)
+[Example BeReal Archive](https://maggiejl.github.io/bereal-memories-website-demo/)
 
 - **Memories** — front/back photos, captions, late vs on-time, search & year filters, ability to rotate the front photo
 - **Comments** — grouped by post. BeReal's data export currently does not allow you to see what post the comments are under.
@@ -37,7 +37,7 @@ python3 -m http.server 8000
 
 6. View your website at: http://localhost:8000
 
-## Optional: Publishing your memories as a website
+## Optional: Publishing your website
 
 These instructions below make your BeReal photos, chats, and profile publicly reachable at a URL. Anyone with the link can view or download the files.
 
