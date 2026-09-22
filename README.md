@@ -2,6 +2,8 @@
 
 This template makes it easy to view your memories, comments, Realmojis, chats, friends, and profile, all in one place!
 
+<img width="375" alt="image" src="https://github.com/user-attachments/assets/db2687e7-d1e1-4372-a94f-22ad786ff38f" />
+
 This website can deploy locally, which means your data is safe and not uploaded anywhere.
 
 ## Example Website
@@ -15,8 +17,6 @@ Curious what it would look like?
 - **Realmojis** — yours + your reactions to other people's BeReals
 - **Chats** — your chats included in the export
 - **Profile** — account information and list of friends, which you can sort by chronological order
-
-<img width="751" height="562" alt="image" src="https://github.com/user-attachments/assets/db2687e7-d1e1-4372-a94f-22ad786ff38f" />
 
 ## Instructions
 
