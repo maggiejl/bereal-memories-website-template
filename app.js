@@ -167,12 +167,34 @@ function rotateMemorySide(side) {
 }
 
 function mediaUrl(rawPath) {
-  let p = String(rawPath || "").replace(/^\/+/, "");
+  if (!rawPath) return "";
+  let p = String(rawPath).replace(/^\/+/, "");
+  if (!p) return "";
   const prefix = `Photos/${USER_ID}/`;
   if (p.startsWith(prefix)) {
     p = `Photos/${p.slice(prefix.length)}`;
   }
   return `${DATA_DIR}/${p}`;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function emptyState(title, detail) {
+  const wrap = document.createElement("div");
+  wrap.className = "empty-state";
+  const heading = document.createElement("p");
+  heading.className = "empty-state-title";
+  heading.textContent = title;
+  wrap.append(heading);
+  if (detail) {
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.textContent = detail;
+    wrap.append(p);
+  }
+  return wrap;
 }
 
 function formatDay(iso) {
@@ -220,6 +242,15 @@ async function loadJson(name) {
   const res = await fetch(`${DATA_DIR}/${name}`);
   if (!res.ok) throw new Error(`Failed to load ${name}: ${res.status}`);
   return res.json();
+}
+
+async function loadJsonOptional(name, fallback = null) {
+  try {
+    return await loadJson(name);
+  } catch (err) {
+    console.warn(`Optional data missing or unreadable: ${name}`, err);
+    return fallback;
+  }
 }
 
 async function loadConversations() {
@@ -340,6 +371,24 @@ function syncFilterToggleState() {
 function renderGrid() {
   const items = filteredMemories();
   els.resultCount.textContent = `${items.length} memories`;
+
+  if (!state.memories.length) {
+    els.grid.replaceChildren(
+      emptyState(
+        "No memories found",
+        "memories.json was missing, empty, or could not be read from your export.",
+      ),
+    );
+    return;
+  }
+
+  if (!items.length) {
+    els.grid.replaceChildren(
+      emptyState("No matching memories", "Try clearing search or filters."),
+    );
+    return;
+  }
+
   const frag = document.createDocumentFragment();
 
   for (const m of items) {
@@ -353,7 +402,7 @@ function renderGrid() {
     back.loading = "lazy";
     back.decoding = "async";
     back.alt = m.caption || `BeReal on ${formatDay(m.taken)}`;
-    back.src = m.backUrl;
+    if (m.backUrl) back.src = m.backUrl;
 
     const frontWrap = document.createElement("span");
     frontWrap.className = "card-front-wrap";
@@ -363,7 +412,7 @@ function renderGrid() {
     front.loading = "lazy";
     front.decoding = "async";
     front.alt = "";
-    front.src = m.frontUrl;
+    if (m.frontUrl) front.src = m.frontUrl;
     frontWrap.append(front);
 
     const meta = document.createElement("span");
@@ -392,8 +441,10 @@ function renderGrid() {
 
 function openDetail(memory) {
   state.activeMemory = memory;
-  els.detailBack.src = memory.backUrl;
-  els.detailFront.src = memory.frontUrl;
+  if (memory.backUrl) els.detailBack.src = memory.backUrl;
+  else els.detailBack.removeAttribute("src");
+  if (memory.frontUrl) els.detailFront.src = memory.frontUrl;
+  else els.detailFront.removeAttribute("src");
   snapImageRotation(els.detailFront, getRotation(memory, "front"), { fitSideways: true });
   els.detailDate.textContent = formatDay(memory.taken);
   els.detailCaption.textContent = memory.caption;
@@ -412,6 +463,8 @@ function openDetail(memory) {
       li.textContent = text;
       els.detailCommentsList.append(li);
     }
+  } else if (!state.comments.length) {
+    els.detailCommentsNote.textContent = "No comments data found in this export.";
   } else {
     els.detailCommentsNote.textContent = "No comments linked to this memory.";
   }
@@ -445,6 +498,23 @@ function renderCommentGroups() {
 
   const totalComments = entries.reduce((n, g) => n + g.texts.length, 0);
   els.commentResultCount.textContent = `${totalComments} comments · ${entries.length} posts`;
+
+  if (!state.comments.length) {
+    els.commentGroups.replaceChildren(
+      emptyState(
+        "No comments found",
+        "comments.json was missing, empty, or could not be read from your export.",
+      ),
+    );
+    return;
+  }
+
+  if (!entries.length) {
+    els.commentGroups.replaceChildren(
+      emptyState("No matching comments", "Try a different search."),
+    );
+    return;
+  }
 
   const frag = document.createDocumentFragment();
   for (const group of entries) {
@@ -500,38 +570,56 @@ function renderCommentGroups() {
 }
 
 function renderRealmojis() {
-  const savedFrag = document.createDocumentFragment();
+  if (!state.realmojis.length) {
+    els.realmojiGrid.replaceChildren(
+      emptyState(
+        "No saved Realmojis",
+        "realmojis.json was missing, empty, or could not be read from your export.",
+      ),
+    );
+  } else {
+    const savedFrag = document.createDocumentFragment();
+    for (const rm of state.realmojis) {
+      const figure = document.createElement("figure");
+      figure.className = "realmoji-card";
 
-  for (const rm of state.realmojis) {
-    const figure = document.createElement("figure");
-    figure.className = "realmoji-card";
+      const img = document.createElement("img");
+      const src = mediaUrl(rm.media?.path);
+      if (src) img.src = src;
+      img.alt = `Realmoji ${rm.emoji || ""}`;
+      img.loading = "lazy";
+      img.decoding = "async";
 
-    const img = document.createElement("img");
-    img.src = mediaUrl(rm.media?.path);
-    img.alt = `Realmoji ${rm.emoji || ""}`;
-    img.loading = "lazy";
-    img.decoding = "async";
+      const caption = document.createElement("figcaption");
+      const emoji = document.createElement("span");
+      emoji.className = "realmoji-emoji";
+      emoji.textContent = rm.emoji || "?";
+      caption.append(emoji);
 
-    const caption = document.createElement("figcaption");
-    const emoji = document.createElement("span");
-    emoji.className = "realmoji-emoji";
-    emoji.textContent = rm.emoji || "?";
-    caption.append(emoji);
-
-    figure.append(img, caption);
-    savedFrag.append(figure);
+      figure.append(img, caption);
+      savedFrag.append(figure);
+    }
+    els.realmojiGrid.replaceChildren(savedFrag);
   }
 
-  els.realmojiGrid.replaceChildren(savedFrag);
-
   els.reactionCount.textContent = `(${state.reactions.length})`;
+  if (!state.reactions.length) {
+    els.reactionGrid.replaceChildren(
+      emptyState(
+        "No reaction Realmojis",
+        "reaction-realmojis.json was missing, empty, or could not be read from your export.",
+      ),
+    );
+    return;
+  }
+
   const reactionFrag = document.createDocumentFragment();
   for (const rm of state.reactions) {
     const figure = document.createElement("figure");
     figure.className = "realmoji-card realmoji-card-compact";
 
     const img = document.createElement("img");
-    img.src = `${DATA_DIR}/${rm.path}`;
+    if (rm.path) img.src = `${DATA_DIR}/${rm.path}`;
     img.alt = "Reaction Realmoji";
     img.loading = "lazy";
     img.decoding = "async";
@@ -569,6 +657,23 @@ function filteredFriends() {
 function renderFriends() {
   const friends = filteredFriends();
   els.friendResultCount.textContent = `${friends.length} friends`;
+
+  if (!state.friends.length) {
+    els.friendsList.replaceChildren(
+      emptyState(
+        "No friends found",
+        "friends.json was missing, empty, or could not be read from your export.",
+      ),
+    );
+    return;
+  }
+
+  if (!friends.length) {
+    els.friendsList.replaceChildren(
+      emptyState("No matching friends", "Try a different search."),
+    );
+    return;
+  }
 
   const friendFrag = document.createDocumentFragment();
   for (const f of friends) {
@@ -713,9 +818,35 @@ function makeChatAvatar(ids, sizeClass = "") {
   return wrap;
 }
 
+function syncChatEmptyCopy() {
+  const title = els.chatEmpty.querySelector(".chat-empty-title");
+  const detail = els.chatEmpty.querySelector(".muted");
+  if (!title || !detail) return;
+
+  if (!state.conversations.length) {
+    title.textContent = "No chats found";
+    detail.textContent =
+      "No conversation logs were found in this export (or none could be read).";
+  } else {
+    title.textContent = "Pick a conversation";
+    detail.textContent = "Your direct messages from the export show up here.";
+  }
+}
+
 function renderChatThreads() {
   const totalMsgs = state.conversations.reduce((n, c) => n + c.messages.length, 0);
   els.chatStats.textContent = `${state.conversations.length} chats · ${totalMsgs} messages`;
+  syncChatEmptyCopy();
+
+  if (!state.conversations.length) {
+    els.chatThreads.replaceChildren(
+      emptyState(
+        "No chats found",
+        "Conversation folders were missing or empty in your export.",
+      ),
+    );
+    return;
+  }
 
   const frag = document.createDocumentFragment();
   for (const chat of state.conversations) {
@@ -867,10 +998,20 @@ function renderProfile() {
   const user = state.user || {};
   els.profileHero.replaceChildren();
 
-  const img = document.createElement("img");
-  img.className = "profile-avatar";
-  img.alt = `${user.fullname || user.username || "Profile"} photo`;
-  img.src = mediaUrl(user.profilePicture?.path);
+  const avatarSrc = mediaUrl(user.profilePicture?.path);
+  if (avatarSrc) {
+    const img = document.createElement("img");
+    img.className = "profile-avatar";
+    img.alt = `${user.fullname || user.username || "Profile"} photo`;
+    img.src = avatarSrc;
+    els.profileHero.append(img);
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.className = "profile-avatar profile-avatar-fallback";
+    placeholder.setAttribute("aria-hidden", "true");
+    placeholder.textContent = (user.fullname || user.username || "?").slice(0, 1).toUpperCase();
+    els.profileHero.append(placeholder);
+  }
 
   const info = document.createElement("div");
   const name = document.createElement("h2");
@@ -881,11 +1022,14 @@ function renderProfile() {
   handle.textContent = `@${user.username || "unknown"}`;
   info.append(name, handle);
 
-  els.profileHero.append(img, info);
+  els.profileHero.append(info);
 
   els.profileFacts.replaceChildren();
-  addFact(els.profileFacts, "Joined", formatTime(user.createdAt));
+  addFact(els.profileFacts, "Joined", user.createdAt ? formatTime(user.createdAt) : null);
   addFact(els.profileFacts, "Timezone", user.timezone);
+  if (!els.profileFacts.children.length) {
+    addFact(els.profileFacts, "Details", "Not available in this export");
+  }
 }
 
 function populateYears() {
@@ -955,33 +1099,36 @@ function setupFilters() {
 
 async function main() {
   try {
+    // Core files still required; everything else degrades gracefully.
     const [user, memoriesRaw, posts, comments, realmojis, reactions, friends, conversations] =
       await Promise.all([
         loadJson("user.json"),
-        loadJson("memories.json"),
-        loadJson("posts.json"),
-        loadJson("comments.json"),
-        loadJson("realmojis.json"),
-        loadJson("reaction-realmojis.json"),
-        loadJson("friends.json"),
+        loadJsonOptional("memories.json", []),
+        loadJsonOptional("posts.json", []),
+        loadJsonOptional("comments.json", []),
+        loadJsonOptional("realmojis.json", []),
+        loadJsonOptional("reaction-realmojis.json", []),
+        loadJsonOptional("friends.json", []),
         loadConversations(),
       ]);
 
-    state.user = user;
-    state.memories = prepareMemories(memoriesRaw, posts);
-    state.comments = comments;
-    state.commentsByPost = groupComments(comments);
-    state.realmojis = realmojis;
-    state.reactions = reactions;
-    state.friends = friends;
-    state.conversations = conversations;
-    state.personLabels = buildPersonLabels(conversations);
-    if (conversations.length && !isNarrowChat()) {
-      state.activeChatId = conversations[0].id;
+    state.user = user && typeof user === "object" && !Array.isArray(user) ? user : {};
+    state.memories = prepareMemories(asArray(memoriesRaw), asArray(posts));
+    state.comments = asArray(comments);
+    state.commentsByPost = groupComments(state.comments);
+    state.realmojis = asArray(realmojis);
+    state.reactions = asArray(reactions);
+    state.friends = asArray(friends);
+    state.conversations = asArray(conversations);
+    state.personLabels = buildPersonLabels(state.conversations);
+    if (state.conversations.length && !isNarrowChat()) {
+      state.activeChatId = state.conversations[0].id;
     }
 
-    els.title.textContent = `${user.fullname || user.username}'s memories`;
-    els.subtitle.textContent = `@${user.username} · ${state.memories.length} memories`;
+    const displayName = state.user.fullname || state.user.username || "BeReal";
+    els.title.textContent = `${displayName}'s memories`;
+    const handle = state.user.username ? `@${state.user.username}` : "Profile";
+    els.subtitle.textContent = `${handle} · ${state.memories.length} memories`;
 
     populateYears();
     setupTabs();

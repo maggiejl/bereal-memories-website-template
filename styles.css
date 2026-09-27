@@ -586,6 +586,31 @@ code {
   line-height: 1.4;
 }
 
+.empty-state {
+  grid-column: 1 / -1;
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  padding: 1.75rem 0.25rem 1rem;
+}
+
+.empty-state-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.empty-state .muted {
+  margin: 0;
+  max-width: 28rem;
+  line-height: 1.45;
+}
+
+.chat-threads .empty-state {
+  padding: 1.25rem 1rem;
+}
+
 #detail-comments-list {
   list-style: none;
   margin: 0.5rem 0 0;
@@ -1150,6 +1175,17 @@ code {
   object-fit: cover;
   border: 2px solid var(--line);
   background: #111;
+}
+
+.profile-avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  background:
+    linear-gradient(145deg, rgba(255, 252, 0, 0.28), rgba(255, 255, 255, 0.06));
 }
 
 .profile-name {
