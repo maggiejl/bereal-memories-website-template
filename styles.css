@@ -248,8 +248,30 @@ code {
 }
 
 .memory-feed {
-  display: grid;
-  gap: 1.75rem;
+  display: block;
+}
+
+/* Windowed feed: tall spacer + absolutely positioned visible cards/headings */
+.virtual-feed {
+  position: relative;
+  width: 100%;
+}
+
+.virtual-feed-heading {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Must beat `.card { position: relative }` so windowed cards stay out of flow */
+.card.virtual-feed-card {
+  position: absolute;
+  aspect-ratio: auto;
+  margin: 0;
 }
 
 .month-group .section-heading {

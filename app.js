@@ -12,6 +12,13 @@ const ROTATION_STORAGE_KEY = "bereal-memories-rotations";
 
 const VIEWS = ["memories", "comments", "realmojis", "chats", "profile"];
 
+const GRID_MIN_COL_PX = 160;
+const GRID_GAP_REM = 0.75;
+const SECTION_GAP_REM = 1.75;
+const HEADING_LINE_REM = 1.35;
+const HEADING_MARGIN_REM = 0.85;
+const VIRTUAL_OVERSCAN_ROWS = 3;
+
 const state = {
   memories: [],
   comments: [],
@@ -27,6 +34,20 @@ const state = {
   rotations: loadRotations(),
   activeMemory: null,
   lightboxSide: null,
+};
+
+const virtualFeed = {
+  items: [],
+  groupByMonth: false,
+  entries: [],
+  mounted: new Map(),
+  root: null,
+  cellH: 0,
+  gap: 0,
+  layoutWidth: 0,
+  resizeObserver: null,
+  raf: 0,
+  relayoutRaf: 0,
 };
 
 const els = {
@@ -95,7 +116,6 @@ function saveRotations() {
   try {
     localStorage.setItem(ROTATION_STORAGE_KEY, JSON.stringify(state.rotations));
   } catch {
-    // Ignore quota / private mode errors
   }
 }
 
@@ -276,7 +296,6 @@ function groupMemoriesByMonth(items) {
 function displayMemories() {
   const items = filteredMemories();
   if (!els.yearFilter.value) return items;
-  // Year view: chronological Jan → Dec
   return [...items].sort((a, b) => String(a.taken).localeCompare(String(b.taken)));
 }
 
@@ -417,7 +436,82 @@ function syncFilterToggleState() {
   els.filterToggle.classList.toggle("is-active", active);
 }
 
-function createMemoryCard(m) {
+function remToPx() {
+  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
+function gridMetrics(width) {
+  const gap = GRID_GAP_REM * remToPx();
+  const cols = Math.max(1, Math.floor((width + gap) / (GRID_MIN_COL_PX + gap)));
+  const cellW = (width - gap * (cols - 1)) / cols;
+  const cellH = cellW * (4 / 3);
+  return { cols, gap, cellW, cellH };
+}
+
+function buildVirtualEntries(items, groupByMonth, width) {
+  const { cols, gap, cellW, cellH } = gridMetrics(width);
+  const rem = remToPx();
+  const sectionGap = SECTION_GAP_REM * rem;
+  const headingH = HEADING_LINE_REM * rem;
+  const headingMargin = HEADING_MARGIN_REM * rem;
+  const entries = [];
+  let y = 0;
+
+  const pushCards = (list) => {
+    if (!list.length) return;
+    list.forEach((m, i) => {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      entries.push({
+        key: `m-${m.index}`,
+        kind: "card",
+        memory: m,
+        top: y + row * (cellH + gap),
+        left: col * (cellW + gap),
+        width: cellW,
+        height: cellH,
+      });
+    });
+    const rows = Math.ceil(list.length / cols);
+    y += rows * cellH + (rows - 1) * gap;
+  };
+
+  if (!groupByMonth) {
+    pushCards(items);
+  } else {
+    const groups = groupMemoriesByMonth(items);
+    groups.forEach((group, gi) => {
+      entries.push({
+        key: `h-${group.key}`,
+        kind: "heading",
+        label: group.label,
+        top: y,
+        left: 0,
+        width,
+        height: headingH,
+      });
+      y += headingH + headingMargin;
+      pushCards(group.items);
+      if (gi < groups.length - 1) y += sectionGap;
+    });
+  }
+
+  return { entries, totalHeight: Math.max(0, y), cellH, gap };
+}
+
+function firstVisibleEntryIndex(entries, viewTop) {
+  let lo = 0;
+  let hi = entries.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    const e = entries[mid];
+    if (e.top + e.height < viewTop) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+function createMemoryCard(m, { lazy = true } = {}) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "card";
@@ -425,7 +519,7 @@ function createMemoryCard(m) {
 
   const back = document.createElement("img");
   back.className = "card-back";
-  back.loading = "lazy";
+  back.loading = lazy ? "lazy" : "eager";
   back.decoding = "async";
   back.alt = m.caption || `BeReal on ${formatDay(m.taken)}`;
   if (m.backUrl) back.src = m.backUrl;
@@ -435,7 +529,7 @@ function createMemoryCard(m) {
 
   const front = document.createElement("img");
   front.className = "card-front";
-  front.loading = "lazy";
+  front.loading = lazy ? "lazy" : "eager";
   front.decoding = "async";
   front.alt = "";
   if (m.frontUrl) front.src = m.frontUrl;
@@ -462,10 +556,147 @@ function createMemoryCard(m) {
   return btn;
 }
 
+function mountVirtualEntry(entry) {
+  if (entry.kind === "heading") {
+    const h = document.createElement("h2");
+    h.className = "section-heading virtual-feed-heading";
+    h.textContent = entry.label;
+    h.style.top = `${entry.top}px`;
+    h.style.left = "0";
+    h.style.width = `${entry.width}px`;
+    h.style.height = `${entry.height}px`;
+    return h;
+  }
+
+  const btn = createMemoryCard(entry.memory, { lazy: false });
+  btn.classList.add("virtual-feed-card");
+  btn.style.top = `${entry.top}px`;
+  btn.style.left = `${entry.left}px`;
+  btn.style.width = `${entry.width}px`;
+  btn.style.height = `${entry.height}px`;
+  return btn;
+}
+
+function unmountVirtualEntry(el) {
+  el.querySelectorAll("img").forEach((img) => {
+    img.removeAttribute("src");
+  });
+  el.remove();
+}
+
+function clearVirtualMounted() {
+  for (const el of virtualFeed.mounted.values()) {
+    unmountVirtualEntry(el);
+  }
+  virtualFeed.mounted.clear();
+}
+
+function disposeVirtualFeed() {
+  window.removeEventListener("scroll", scheduleVirtualFeedSync);
+  if (virtualFeed.resizeObserver) {
+    virtualFeed.resizeObserver.disconnect();
+    virtualFeed.resizeObserver = null;
+  }
+  if (virtualFeed.raf) {
+    cancelAnimationFrame(virtualFeed.raf);
+    virtualFeed.raf = 0;
+  }
+  if (virtualFeed.relayoutRaf) {
+    cancelAnimationFrame(virtualFeed.relayoutRaf);
+    virtualFeed.relayoutRaf = 0;
+  }
+  clearVirtualMounted();
+  virtualFeed.root = null;
+  virtualFeed.entries = [];
+  virtualFeed.items = [];
+  virtualFeed.layoutWidth = 0;
+}
+
+function syncVirtualFeedWindow() {
+  const root = virtualFeed.root;
+  if (!root || !virtualFeed.entries.length) return;
+
+  const rect = root.getBoundingClientRect();
+  const rowStride = virtualFeed.cellH + virtualFeed.gap;
+  const overscan = VIRTUAL_OVERSCAN_ROWS * (rowStride > 0 ? rowStride : 200);
+  const viewTop = -rect.top - overscan;
+  const viewBottom = -rect.top + window.innerHeight + overscan;
+
+  const start = firstVisibleEntryIndex(virtualFeed.entries, viewTop);
+  const nextKeys = new Set();
+
+  for (let i = start; i < virtualFeed.entries.length; i++) {
+    const entry = virtualFeed.entries[i];
+    if (entry.top > viewBottom) break;
+    nextKeys.add(entry.key);
+    if (!virtualFeed.mounted.has(entry.key)) {
+      const el = mountVirtualEntry(entry);
+      root.append(el);
+      virtualFeed.mounted.set(entry.key, el);
+    }
+  }
+
+  for (const [key, el] of virtualFeed.mounted) {
+    if (!nextKeys.has(key)) {
+      unmountVirtualEntry(el);
+      virtualFeed.mounted.delete(key);
+    }
+  }
+}
+
+function scheduleVirtualFeedSync() {
+  if (virtualFeed.raf) return;
+  virtualFeed.raf = requestAnimationFrame(() => {
+    virtualFeed.raf = 0;
+    syncVirtualFeedWindow();
+  });
+}
+
+function relayoutVirtualFeed({ force = false } = {}) {
+  const root = virtualFeed.root;
+  if (!root) return;
+
+  const width =
+    root.clientWidth ||
+    els.grid.clientWidth ||
+    els.views.memories?.clientWidth ||
+    0;
+  if (width <= 0) return;
+
+  // Ignore sub-pixel / scrollbar noise so we don't tear down loading images
+  if (!force && Math.abs(width - virtualFeed.layoutWidth) < 1) {
+    syncVirtualFeedWindow();
+    return;
+  }
+
+  const { entries, totalHeight, cellH, gap } = buildVirtualEntries(
+    virtualFeed.items,
+    virtualFeed.groupByMonth,
+    width,
+  );
+  virtualFeed.entries = entries;
+  virtualFeed.cellH = cellH;
+  virtualFeed.gap = gap;
+  virtualFeed.layoutWidth = width;
+  root.style.height = `${totalHeight}px`;
+  clearVirtualMounted();
+  syncVirtualFeedWindow();
+}
+
+function scheduleVirtualFeedRelayout() {
+  if (virtualFeed.relayoutRaf) return;
+  virtualFeed.relayoutRaf = requestAnimationFrame(() => {
+    virtualFeed.relayoutRaf = 0;
+    relayoutVirtualFeed();
+  });
+}
+
 function renderGrid() {
   const items = displayMemories();
   const groupByMonth = Boolean(els.yearFilter.value);
   els.resultCount.textContent = `${items.length} memories`;
+
+  disposeVirtualFeed();
 
   if (!state.memories.length) {
     els.grid.replaceChildren(
@@ -484,36 +715,24 @@ function renderGrid() {
     return;
   }
 
-  const frag = document.createDocumentFragment();
+  const root = document.createElement("div");
+  root.className = "virtual-feed";
+  els.grid.replaceChildren(root);
 
-  if (groupByMonth) {
-    for (const group of groupMemoriesByMonth(items)) {
-      const section = document.createElement("section");
-      section.className = "month-group";
+  virtualFeed.root = root;
+  virtualFeed.items = items;
+  virtualFeed.groupByMonth = groupByMonth;
 
-      const heading = document.createElement("h2");
-      heading.className = "section-heading";
-      heading.textContent = group.label;
-      section.append(heading);
-
-      const grid = document.createElement("div");
-      grid.className = "grid";
-      for (const m of group.items) {
-        grid.append(createMemoryCard(m));
-      }
-      section.append(grid);
-      frag.append(section);
+  window.addEventListener("scroll", scheduleVirtualFeedSync, { passive: true });
+  virtualFeed.resizeObserver = new ResizeObserver((entries) => {
+    const next = entries[0]?.contentRect?.width ?? 0;
+    if (next > 0 && Math.abs(next - virtualFeed.layoutWidth) >= 1) {
+      scheduleVirtualFeedRelayout();
     }
-  } else {
-    const grid = document.createElement("div");
-    grid.className = "grid";
-    for (const m of items) {
-      grid.append(createMemoryCard(m));
-    }
-    frag.append(grid);
-  }
+  });
+  virtualFeed.resizeObserver.observe(root);
 
-  els.grid.replaceChildren(frag);
+  relayoutVirtualFeed({ force: true });
 }
 
 function activeMemoryIndex() {
