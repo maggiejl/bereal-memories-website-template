@@ -274,7 +274,7 @@ function formatMonthName(iso) {
   if (!iso) return "Unknown date";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Unknown date";
-  return d.toLocaleDateString(undefined, { month: "long" });
+  return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
 function groupMemoriesByMonth(items) {
