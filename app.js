@@ -26,6 +26,7 @@ const state = {
   activeChatId: null,
   rotations: loadRotations(),
   activeMemory: null,
+  lightboxSide: null,
 };
 
 const els = {
@@ -52,6 +53,9 @@ const els = {
   detailRetakes: document.getElementById("detail-retakes"),
   detailCommentsNote: document.getElementById("detail-comments-note"),
   detailCommentsList: document.getElementById("detail-comments-list"),
+  lightbox: document.getElementById("lightbox"),
+  lightboxImg: document.getElementById("lightbox-img"),
+  lightboxClose: document.getElementById("lightbox-close"),
   commentSearch: document.getElementById("comment-search"),
   commentResultCount: document.getElementById("comment-result-count"),
   commentGroups: document.getElementById("comment-groups"),
@@ -150,6 +154,12 @@ function setRotation(memory, side, degrees, { animateClockwise = false } = {}) {
     applyImageRotation(els.detailFront, deg, detailOpts);
   } else {
     applyImageRotation(els.detailBack, deg, detailOpts);
+  }
+
+  if (state.lightboxSide === side && els.lightbox.open) {
+    applyImageRotation(els.lightboxImg, deg, {
+      clockwiseStep: animateClockwise ? 90 : null,
+    });
   }
 
   const card = els.grid.querySelector(`.card[data-index="${memory.index}"]`);
@@ -480,8 +490,44 @@ function openDetail(memory) {
 }
 
 function closeDetail() {
+  closeLightbox();
   state.activeMemory = null;
   document.body.style.overflow = "";
+}
+
+function openLightbox(side) {
+  const memory = state.activeMemory;
+  if (!memory) return;
+  const src = side === "front" ? memory.frontUrl : memory.backUrl;
+  if (!src) return;
+
+  state.lightboxSide = side;
+  els.lightboxImg.src = src;
+  els.lightboxImg.alt = side === "front" ? "Front camera" : "Back camera";
+  snapImageRotation(els.lightboxImg, getRotation(memory, side));
+
+  if (typeof els.lightbox.showModal === "function") {
+    els.lightbox.showModal();
+  } else {
+    els.lightbox.setAttribute("open", "");
+  }
+}
+
+function closeLightbox() {
+  if (!els.lightbox.open && !els.lightbox.hasAttribute("open")) {
+    state.lightboxSide = null;
+    return;
+  }
+  if (typeof els.lightbox.close === "function") {
+    els.lightbox.close();
+  } else {
+    els.lightbox.removeAttribute("open");
+  }
+  state.lightboxSide = null;
+  els.lightboxImg.removeAttribute("src");
+  els.lightboxImg.alt = "";
+  els.lightboxImg.style.transform = "";
+  els.lightboxImg.classList.remove("is-sideways");
 }
 
 const COMMENT_PREVIEW_COUNT = 4;
@@ -1094,6 +1140,24 @@ function setupFilters() {
   els.detail.addEventListener("close", closeDetail);
   els.detail.querySelectorAll("[data-rotate]").forEach((btn) => {
     btn.addEventListener("click", () => rotateMemorySide(btn.dataset.rotate));
+  });
+
+  els.detailFront.addEventListener("click", () => openLightbox("front"));
+  els.detailBack.addEventListener("click", () => openLightbox("back"));
+  els.lightboxClose.addEventListener("click", closeLightbox);
+  els.lightboxImg.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeLightbox();
+  });
+  els.lightbox.addEventListener("click", (e) => {
+    if (e.target === els.lightbox) closeLightbox();
+  });
+  els.lightbox.addEventListener("close", () => {
+    state.lightboxSide = null;
+    els.lightboxImg.removeAttribute("src");
+    els.lightboxImg.alt = "";
+    els.lightboxImg.style.transform = "";
+    els.lightboxImg.classList.remove("is-sideways");
   });
 }
 
