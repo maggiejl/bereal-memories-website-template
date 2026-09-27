@@ -53,6 +53,8 @@ const els = {
   detailRetakes: document.getElementById("detail-retakes"),
   detailCommentsNote: document.getElementById("detail-comments-note"),
   detailCommentsList: document.getElementById("detail-comments-list"),
+  detailPrev: document.getElementById("detail-prev"),
+  detailNext: document.getElementById("detail-next"),
   lightbox: document.getElementById("lightbox"),
   lightboxImg: document.getElementById("lightbox-img"),
   lightboxClose: document.getElementById("lightbox-close"),
@@ -449,7 +451,52 @@ function renderGrid() {
   els.grid.replaceChildren(frag);
 }
 
+function activeMemoryIndex() {
+  const items = filteredMemories();
+  if (!state.activeMemory) return { items, index: -1 };
+  const index = items.findIndex((m) => m.index === state.activeMemory.index);
+  return { items, index };
+}
+
+function setNavDisabled(btn, disabled) {
+  btn.setAttribute("aria-disabled", disabled ? "true" : "false");
+}
+
+function isNavDisabled(btn) {
+  return btn.getAttribute("aria-disabled") === "true";
+}
+
+function updateDetailNav() {
+  const { items, index } = activeMemoryIndex();
+  const total = items.length;
+  setNavDisabled(els.detailPrev, index <= 0);
+  setNavDisabled(els.detailNext, index < 0 || index >= total - 1);
+}
+
+function clearDetailFocus() {
+  const focused = document.activeElement;
+  if (focused && focused !== els.detail && els.detail.contains(focused)) {
+    focused.blur();
+  }
+  if (els.detail.open) {
+    els.detail.focus({ preventScroll: true });
+  }
+}
+
+function navigateDetail(delta) {
+  if (!els.detail.open && !els.detail.hasAttribute("open")) return;
+  if (els.lightbox.open || els.lightbox.hasAttribute("open")) return;
+  const btn = delta < 0 ? els.detailPrev : els.detailNext;
+  if (isNavDisabled(btn)) return;
+  const { items, index } = activeMemoryIndex();
+  const next = index + delta;
+  if (next < 0 || next >= items.length) return;
+  openDetail(items[next]);
+  clearDetailFocus();
+}
+
 function openDetail(memory) {
+  closeLightbox();
   state.activeMemory = memory;
   if (memory.backUrl) els.detailBack.src = memory.backUrl;
   else els.detailBack.removeAttribute("src");
@@ -479,10 +526,14 @@ function openDetail(memory) {
     els.detailCommentsNote.textContent = "No comments linked to this memory.";
   }
 
-  if (typeof els.detail.showModal === "function") {
-    els.detail.showModal();
-  } else {
-    els.detail.setAttribute("open", "");
+  updateDetailNav();
+
+  if (!els.detail.open) {
+    if (typeof els.detail.showModal === "function") {
+      els.detail.showModal();
+    } else {
+      els.detail.setAttribute("open", "");
+    }
   }
 
   document.body.style.overflow = "hidden";
@@ -501,6 +552,7 @@ function openLightbox(side) {
   const src = side === "front" ? memory.frontUrl : memory.backUrl;
   if (!src) return;
 
+  document.activeElement?.blur?.();
   state.lightboxSide = side;
   els.lightboxImg.src = src;
   els.lightboxImg.alt = side === "front" ? "Front camera" : "Back camera";
@@ -793,7 +845,6 @@ function chatOthersFromData(conversation) {
     ? conversation.participants
     : conversation.messages.map((m) => m.userId);
   const others = [...new Set(ids.filter((id) => id && id !== USER_ID))];
-  // Export only includes senders — if nobody else wrote, still treat as a DM.
   if (others.length) return others;
   return [`chat:${conversation.id}`];
 }
@@ -1141,6 +1192,19 @@ function setupFilters() {
   els.detail.querySelectorAll("[data-rotate]").forEach((btn) => {
     btn.addEventListener("click", () => rotateMemorySide(btn.dataset.rotate));
   });
+  els.detailPrev.addEventListener("click", () => navigateDetail(-1));
+  els.detailNext.addEventListener("click", () => navigateDetail(1));
+  document.addEventListener("keydown", (e) => {
+    if (!els.detail.open && !els.detail.hasAttribute("open")) return;
+    if (els.lightbox.open || els.lightbox.hasAttribute("open")) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      navigateDetail(-1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      navigateDetail(1);
+    }
+  });
 
   els.detailFront.addEventListener("click", () => openLightbox("front"));
   els.detailBack.addEventListener("click", () => openLightbox("back"));
@@ -1158,12 +1222,12 @@ function setupFilters() {
     els.lightboxImg.alt = "";
     els.lightboxImg.style.transform = "";
     els.lightboxImg.classList.remove("is-sideways");
+    queueMicrotask(() => clearDetailFocus());
   });
 }
 
 async function main() {
   try {
-    // Core files still required; everything else degrades gracefully.
     const [user, memoriesRaw, posts, comments, realmojis, reactions, friends, conversations] =
       await Promise.all([
         loadJson("user.json"),

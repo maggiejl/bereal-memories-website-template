@@ -448,11 +448,59 @@ code {
   cursor: pointer;
 }
 
+.nav-btn {
+  appearance: none;
+  position: fixed;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0;
+  font: inherit;
+  line-height: 0;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.nav-btn svg {
+  display: block;
+}
+
+.nav-btn-prev {
+  left: 0.85rem;
+  transform: translateY(-50%);
+}
+
+.nav-btn-next {
+  right: 0.85rem;
+  transform: translateY(-50%);
+}
+
+.nav-btn:hover:not([aria-disabled="true"]),
+.nav-btn:focus-visible:not([aria-disabled="true"]) {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+  outline: none;
+}
+
+.nav-btn[aria-disabled="true"] {
+  opacity: 0.28;
+  cursor: default;
+  pointer-events: none;
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
-  padding: 0.25rem 1rem 2rem;
+  padding: 0.25rem 4rem 2rem;
 }
 
 .stage {
@@ -490,6 +538,15 @@ code {
   transition: transform 200ms ease;
   transform-origin: center center;
   cursor: zoom-in;
+  outline: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.detail:focus,
+.detail:focus-visible {
+  outline: none;
 }
 
 .lightbox {
@@ -1320,7 +1377,25 @@ code {
 
   .detail-layout {
     gap: 1rem;
-    padding: 0.25rem 0.75rem 1.5rem;
+    padding: 0.25rem 2.75rem 1.5rem;
+  }
+
+  .nav-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .nav-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .nav-btn-prev {
+    left: 0.4rem;
+  }
+
+  .nav-btn-next {
+    right: 0.4rem;
   }
 
   .stage {
