@@ -247,6 +247,15 @@ code {
   color: var(--ink);
 }
 
+.memory-feed {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.month-group .section-heading {
+  margin-bottom: 0.85rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

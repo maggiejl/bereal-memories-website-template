@@ -243,6 +243,43 @@ function yearOf(iso) {
   return String(new Date(iso).getFullYear());
 }
 
+function monthKey(iso) {
+  if (!iso) return "unknown";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "unknown";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthName(iso) {
+  if (!iso) return "Unknown date";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Unknown date";
+  return d.toLocaleDateString(undefined, { month: "long" });
+}
+
+function groupMemoriesByMonth(items) {
+  const groups = [];
+  const byKey = new Map();
+  for (const m of items) {
+    const key = monthKey(m.taken);
+    let group = byKey.get(key);
+    if (!group) {
+      group = { key, label: formatMonthName(m.taken), items: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.items.push(m);
+  }
+  return groups.sort((a, b) => a.key.localeCompare(b.key));
+}
+
+function displayMemories() {
+  const items = filteredMemories();
+  if (!els.yearFilter.value) return items;
+  // Year view: chronological Jan → Dec
+  return [...items].sort((a, b) => String(a.taken).localeCompare(String(b.taken)));
+}
+
 function cleanMessageText(raw) {
   if (!raw) return "";
   return String(raw)
@@ -380,8 +417,54 @@ function syncFilterToggleState() {
   els.filterToggle.classList.toggle("is-active", active);
 }
 
+function createMemoryCard(m) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "card";
+  btn.dataset.index = String(m.index);
+
+  const back = document.createElement("img");
+  back.className = "card-back";
+  back.loading = "lazy";
+  back.decoding = "async";
+  back.alt = m.caption || `BeReal on ${formatDay(m.taken)}`;
+  if (m.backUrl) back.src = m.backUrl;
+
+  const frontWrap = document.createElement("span");
+  frontWrap.className = "card-front-wrap";
+
+  const front = document.createElement("img");
+  front.className = "card-front";
+  front.loading = "lazy";
+  front.decoding = "async";
+  front.alt = "";
+  if (m.frontUrl) front.src = m.frontUrl;
+  frontWrap.append(front);
+
+  const meta = document.createElement("span");
+  meta.className = "card-meta";
+
+  const date = document.createElement("span");
+  date.className = "card-date";
+  date.textContent = formatDay(m.taken);
+  meta.append(date);
+
+  if (m.caption) {
+    const caption = document.createElement("span");
+    caption.className = "card-caption";
+    caption.textContent = m.caption;
+    meta.append(caption);
+  }
+
+  btn.append(back, frontWrap, meta);
+  applyImageRotation(front, getRotation(m, "front"));
+  btn.addEventListener("click", () => openDetail(m));
+  return btn;
+}
+
 function renderGrid() {
-  const items = filteredMemories();
+  const items = displayMemories();
+  const groupByMonth = Boolean(els.yearFilter.value);
   els.resultCount.textContent = `${items.length} memories`;
 
   if (!state.memories.length) {
@@ -403,56 +486,38 @@ function renderGrid() {
 
   const frag = document.createDocumentFragment();
 
-  for (const m of items) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "card";
-    btn.dataset.index = String(m.index);
+  if (groupByMonth) {
+    for (const group of groupMemoriesByMonth(items)) {
+      const section = document.createElement("section");
+      section.className = "month-group";
 
-    const back = document.createElement("img");
-    back.className = "card-back";
-    back.loading = "lazy";
-    back.decoding = "async";
-    back.alt = m.caption || `BeReal on ${formatDay(m.taken)}`;
-    if (m.backUrl) back.src = m.backUrl;
+      const heading = document.createElement("h2");
+      heading.className = "section-heading";
+      heading.textContent = group.label;
+      section.append(heading);
 
-    const frontWrap = document.createElement("span");
-    frontWrap.className = "card-front-wrap";
-
-    const front = document.createElement("img");
-    front.className = "card-front";
-    front.loading = "lazy";
-    front.decoding = "async";
-    front.alt = "";
-    if (m.frontUrl) front.src = m.frontUrl;
-    frontWrap.append(front);
-
-    const meta = document.createElement("span");
-    meta.className = "card-meta";
-
-    const date = document.createElement("span");
-    date.className = "card-date";
-    date.textContent = formatDay(m.taken);
-    meta.append(date);
-
-    if (m.caption) {
-      const caption = document.createElement("span");
-      caption.className = "card-caption";
-      caption.textContent = m.caption;
-      meta.append(caption);
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      for (const m of group.items) {
+        grid.append(createMemoryCard(m));
+      }
+      section.append(grid);
+      frag.append(section);
     }
-
-    btn.append(back, frontWrap, meta);
-    applyImageRotation(front, getRotation(m, "front"));
-    btn.addEventListener("click", () => openDetail(m));
-    frag.append(btn);
+  } else {
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    for (const m of items) {
+      grid.append(createMemoryCard(m));
+    }
+    frag.append(grid);
   }
 
   els.grid.replaceChildren(frag);
 }
 
 function activeMemoryIndex() {
-  const items = filteredMemories();
+  const items = displayMemories();
   if (!state.activeMemory) return { items, index: -1 };
   const index = items.findIndex((m) => m.index === state.activeMemory.index);
   return { items, index };
