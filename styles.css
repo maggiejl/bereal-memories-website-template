@@ -716,6 +716,11 @@ code {
   font-weight: 600;
 }
 
+.view-note {
+  margin: 0 0 1rem;
+  max-width: 42rem;
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.92rem;
